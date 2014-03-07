@@ -18,38 +18,39 @@ import org.eclipse.jetty.spdy.api.SynInfo;
  */
 public class App {
 
-	public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
 
-		// this listener receives data from the server. It then prints out the data
-		StreamFrameListener streamListener = new StreamFrameListener.Adapter() {
+        // this listener receives data from the server. It then prints out the data
+        StreamFrameListener streamListener = new StreamFrameListener.Adapter() {
 
-		    public void onData(Stream stream, DataInfo dataInfo)  {
-		        // Data received from server
-		        String content = dataInfo.asString("UTF-8", true);
-		        System.out.println("SPDY content: " + content);
-		    }
-		};
+            @Override
+            public void onData(Stream stream, DataInfo dataInfo) {
+                // Data received from server
+                String content = dataInfo.asString("UTF-8", true);
+                System.out.println("SPDY content: " + content);
+            }
+        };
 
-		// Create client
-		SPDYClient.Factory clientFactory = new SPDYClient.Factory();
-		clientFactory.start();
-		SPDYClient client = clientFactory.newSPDYClient(SPDY.V3);
+        // Create client
+        SPDYClient.Factory clientFactory = new SPDYClient.Factory();
+        clientFactory.start();
+        SPDYClient client = clientFactory.newSPDYClient(SPDY.V3);
 
-		Session session = client.connect(new InetSocketAddress("google.co.jp", 80), null).get(5, TimeUnit.SECONDS);
+        Session session = client.connect(new InetSocketAddress("google.co.jp", 80), null).get(5, TimeUnit.SECONDS);
 
-		// Start a new session, and configure the stream listener
-		final Stream stream = session.syn(new SynInfo(false), streamListener).get(5, TimeUnit.SECONDS);
+        // Start a new session, and configure the stream listener
+        final Stream stream = session.syn(new SynInfo(false), streamListener).get(5, TimeUnit.SECONDS);
 
-		//start a timer that sends a request to this stream every second
-		ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-		Runnable periodicTask = new Runnable() {
-				private int i = 0;
+        //start a timer that sends a request to this stream every second
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        Runnable periodicTask = new Runnable() {
+            private int i = 0;
 
-			    public void run() {
-			    	// send a request, don't close the stream
-			    	stream.data(new StringDataInfo("Data from the client " + i++, false));
-			    }
-			};
-		executor.scheduleAtFixedRate(periodicTask, 0, 1, TimeUnit.SECONDS);
-	}
+            public void run() {
+                // send a request, don't close the stream
+                stream.data(new StringDataInfo("Data from the client " + i++, false));
+            }
+        };
+        executor.scheduleAtFixedRate(periodicTask, 0, 1, TimeUnit.SECONDS);
+    }
 }
